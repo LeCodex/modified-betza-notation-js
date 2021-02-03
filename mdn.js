@@ -54,7 +54,7 @@ From http://ccif.sourceforge.net/modified-betza-notation.html:
 	<Square>              ::= <File> <Rank> <3dLevel>? <4dRow>?
 
 
-The decomposition will follow this schema, with earlier steps only checking for the correct characters and later ones checking for the more precise syntax
+The decomposition will follow this form, with earlier steps only checking for the correct characters and later ones checking for the more precise syntax
 */
 
 const developBasicLeapers = true;
@@ -259,7 +259,7 @@ function MoveSequence(moveSequence, result) {
 
 function OptionalMove(optionalMove, result) {
 	// <OptionalMove>        ::= <CombinedMove> | '[' <MoveSequence> ']' | '{' <MoveSequence> '}'
-	var match = optionalMove.match(/^\[(?<MoveSequence1>\S+)\]$|^{(?<MoveSequence2>\S+)}$|^(?<CombinedMove>\S+)$/);
+	var match = optionalMove.match(/^\[(?<MoveSequence1>[^\s\[]+)\]$|^{(?<MoveSequence2>[^\s{]+)}$|^(?<CombinedMove>\S+)$/);
 
 	if (!match) { result.error = "Could not match the OptionalMove `" + optionalMove + "`"; return result; }
 
@@ -294,7 +294,7 @@ function CombinedMove(combinedMove, result) {
 
 function PartialMove(partialMove, result) {
 	// <PartialMove>         ::= <MovePrefix> <BoardRange>? <ModifiedMove> <BoardRange>?
-	var match = partialMove.match(/^(?<MovePrefix>!?(<[+\-0-9do]+>)?(\/[{}a-zA-Z0-9\-^!]+\/)?)(?<BoardRange1>\[[0-9a-zA-Z^\-,]+\])?(?<ModifiedMove>\S+)(?<BoardRange2>\[[0-9a-zA-Z^\-,]+\])?$/);
+	var match = partialMove.match(/^(?<MovePrefix>!?(<[+\-0-9do]+>)?(\/[{}a-zA-Z0-9\-^!]+\/)?)(?<BoardRange1>\[[#.+*:0-9a-zA-Z^\-,]+\])?(?<ModifiedMove>\S+?)(?<BoardRange2>\[[#.+*:0-9a-zA-Z^\-,]+\])?$/);
 
 	if (!match) { result.error = "Could not match the PartialMove `" + partialMove + "`"; return result; }
 	var range1 = null, range2 = null, move = {};
@@ -678,7 +678,7 @@ function Modifier(modifier, result) {
 
 function BoardRange(boardRange, result) {
 	// <BoardRange>          ::= '[' '^'? <CompoundRange> ']'
-	var match = boardRange.match(/^\[\^?(?<CompoundRange>[\-a-zA-H0-9,]+)\]$/);
+	var match = boardRange.match(/^\[\^?(?<CompoundRange>[#.+*:\-a-zA-H0-9,]+)\]$/);
 
 	if (!match) { result.error = "Could not match the BoardRange `" + boardRange + "`"; return; }
 
@@ -688,9 +688,9 @@ function BoardRange(boardRange, result) {
 function CompoundRange(compoundRange, result) {
 	// <CompoundRange>       ::= <SingleRange> ( ',' <SingleRange> )*
 	var parsedRanges = [];
-	if (!/^[\-a-zA-H0-9]+(,[\-a-zA-H0-9]+)*$/.test(compoundRange)) { result.error = "Could not match the CompoundRange `" + compoundRange + "`"; return; }
+	if (!/^[#.+*:\-a-zA-H0-9]+(,[#.+*:\-a-zA-H0-9]+)*$/.test(compoundRange)) { result.error = "Could not match the CompoundRange `" + compoundRange + "`"; return; }
 
-	var ranges = compoundRange.matchAll(/(?<SingleRange1>[\-a-zA-H0-9]+)|(,(?<SingleRange2>[\-a-zA-H0-9]+))/g);
+	var ranges = compoundRange.matchAll(/(?<SingleRange1>[#.+*:\-a-zA-H0-9]+)|(,(?<SingleRange2>[#.+*:\-a-zA-H0-9]+))/g);
 
 	if (!ranges) { result.error = "Could not match the SingleRanges of the CompoundRange `" + compoundRange + "`"; return; }
 
@@ -708,11 +708,17 @@ function CompoundRange(compoundRange, result) {
 }
 
 function SingleRange(singleRange, result) {
-	// <SingleRange>         ::= ( <FileRange> | <RankRange> | <SquareRange> ) <3dRange>? <4dRange>?
+	// <SingleRange>         ::= ( <FileRange> | <RankRange> | <SquareRange> ) <3dRange>? <4dRange>?  ; Added the missing ranges for edge, inner, threatened, unthreatened and unmoved squares
 	// <SquareRange>         ::= <FileRange> <RankRange>
-	var match = singleRange.match(/^((?<FileRange>[a-z\-]+)?(?<RankRange>[0-9\-]+)?)(?<ThreeDRange>[A-H\-]+)?(?<FourDRange>[1-8\-]+)?$/);
+	var match = singleRange.match(/^(?<Edge>#)|(?<Inner>\.)|(?<Threatened>\+)|(?<Unthreatened>\*)|(?<Unmoved>:)|(?<FileRange>[a-z\-]+)?(?<RankRange>[0-9\-]+)?(?<ThreeDRange>[A-H\-]+)?(?<FourDRange>[1-8\-]+)?$/);
 
 	if (!match) { result.error = "Could not match the SingleRange `" + singleRange + "`"; return; }
+
+	if (match.groups.Edge) return CompoundRange("a-h1,a-h8,a1-8,h1-8", result);
+	if (match.groups.Inner) return { file: ["b", "g"], rank: ["2", "7"] };
+	if (match.groups.Threatened) return { threatened: true };
+	if (match.groups.Unthreatened) return { unthreatened: true };
+	if (match.groups.Unmoved) return { unmoved: true };
 
 	var range = {};
 	if (match.groups.FileRange) { range.file = FileRange(match.groups.FileRange, result); }
@@ -727,7 +733,7 @@ function SingleRange(singleRange, result) {
 
 function FileRange(fileRange, result) {
 	// <FileRange>           ::= <File> ( '-' <File> )?
-	// <File>                ::= [a-z]  ; Swapped both File and Rank since this was wrong on the original schema
+	// <File>                ::= [a-z]  ; Swapped both File and Rank since this was wrong on the original form
 	var match = fileRange.match(/^(?<File1>[a-z])(-(?<File2>[a-z]))?$/);
 
 	if (!match) { result.error = "Could not match the FileRange `" + fileRange + "`"; return; }

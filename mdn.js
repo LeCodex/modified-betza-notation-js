@@ -67,12 +67,12 @@ function addWarning(result, warning) {
 	return result;
 }
 
-function MDN(notation) {
+function MDN(description) {
 	// <MBN>                 ::= <Identifier> '=' <MoveDefinition>
 	var result = {};
-	var match = notation.match(/^(?<Identifier>\S+) = (?<MoveDefinition>\S+)$/);
+	var match = description.match(/^(?<Identifier>\S+) = (?<MoveDefinition>\S+)$/);
 
-	if (!match) { result.error = "Could not match the MDN notation `" + notation + "`"; return result; }
+	if (!match) { result.error = "Could not match the MDN notation `" + description + "`"; return result; }
 
 	result = Identifier(match.groups.Identifier, result);
 	if (!result.error) result = MoveDefinition(match.groups.MoveDefinition, result);
@@ -144,14 +144,15 @@ function BoardIdentifier(boardIdentifier, result) {
 }
 
 function ThreeDBoardIdentifier(threeDBoardIdentifier, result) {
-	var match = threeDBoardIdentifier.match(/^<(?<BoardNumbers1>[0-9*,]+)>|<<(?<BoardNumbers2>[0-9*,]+)>>$/);
+	// <3dBoardIdentifier>   ::= '<' <BoardNumbers> '>' | '<' '<' <BoardNumbers> '>' '>'
+	var match = threeDBoardIdentifier.match(/^<(?<BoardNumbers1>[0-9*,]+)>$|^<<(?<BoardNumbers2>[0-9*,]+)>>$/);
 
 	if (!match) {
 		result = addWarning(result, "Could not match 3dBoardIdentifier `" + threeDBoardIdentifier + "`");
 		return result; // Didn't match the 3D board syntax but may match the 4D board one, so no errors
 	}
 
-	var numbers = BoardNumbers(match.groups.BoardNumbers1 ? match.group.BoardNumbers1 : match.groups.BoardNumbers2);
+	var numbers = BoardNumbers(match.groups.BoardNumbers1 ? match.groups.BoardNumbers1 : match.groups.BoardNumbers2);
 
 	if (!numbers) {
 		result = addWarning(result, "Could not match the Board Numbers of the 3dBoardIdentifier `" + threeDBoardIdentifier + "`");
@@ -215,7 +216,7 @@ function FourDBoardIdentifier2(fourDBoardIdentifier, result) {
 
 function BoardNumbers(boardNumbers) {
 	// <BoardNumbers>        ::= '*' | <ListOfNumbers>  ; Since this is close enough to being a leaf in our parsing tree, this function will only return a list of the numbers it found
-	var match = boardNumbers.match(/^\*|(?<ListOfNumbers>[0-9,]+)$/);
+	var match = boardNumbers.match(/^\*$|^(?<ListOfNumbers>[0-9,]+)$/);
 
 	if (!match) return null;
 
@@ -227,7 +228,7 @@ function ListOfNumbers(listOfNumbers) {
 	// Number                ::= [0-9]+
 	if (!/^[0-9](?:,[0-9])*$/.test(listOfNumbers)) return null; // Could not match the format
 
-	return [...listOfNumbers.matchAll(/[0-9]+/g)];
+	return [...listOfNumbers.matchAll(/[0-9]+/g)].map(e => e[0]);
 }
 
 function MoveDefinition(moveDefinition, result) {
@@ -293,9 +294,9 @@ function CombinedMove(combinedMove, result) {
 
 function PartialMove(partialMove, result) {
 	// <PartialMove>         ::= <MovePrefix> <BoardRange>? <ModifiedMove> <BoardRange>?
-	var match = partialMove.match(/^(?<MovePrefix>!?(<[+\-0-9do]+>)?(\/[{}a-zA-Z0-9\-^!]+\/)?)(?<BoardRange1>\[[0-9a-zA-Z^\-,]+\])?(?<ModifiedMove>[{}!^A-Za-z:0-9*\-#()]+)(?<BoardRange2>\[[0-9a-zA-Z^\-,]+\])?$/);
+	var match = partialMove.match(/^(?<MovePrefix>!?(<[+\-0-9do]+>)?(\/[{}a-zA-Z0-9\-^!]+\/)?)(?<BoardRange1>\[[0-9a-zA-Z^\-,]+\])?(?<ModifiedMove>\S+)(?<BoardRange2>\[[0-9a-zA-Z^\-,]+\])?$/);
 
-	if (!match) { result.error = "Could not match the PartialMove`" + partialMove + "`"; return result; }
+	if (!match) { result.error = "Could not match the PartialMove `" + partialMove + "`"; return result; }
 	var range1 = null, range2 = null, move = {};
 
 	if (match.groups.BoardRange1) range1 = BoardRange(match.groups.BoardRange1, result);
@@ -326,6 +327,8 @@ function MovePrefix(movePrefix, result, range) {
 
 function ModifiedMove(modifiedMove, result, range) {
 	// ModifiedMove>         ::= <Attackers>* <Modification>* <Move> <Move>*
+	// console.log(modifiedMove);
+
 	var move = {
 		modifiers: [],
 		choices: []
@@ -358,7 +361,8 @@ function Moves(moves, result) {
 	// <DirectionalModifier> ::= <Amalgamated> | <Direction>
 	// <Direction>           ::= [bdflrstvz]
 	// <Amalgamated>         ::= '(' <Direction> <Direction> ')'
-	// No special formatting necessary
+	if (!/^(\(\S+\)([bdflrstvz]|\([bdflrstvz]{2}\))?([*#0-9]+)?|[A-Z]((\([bdflrstvz]{,2}\))?[*#0-9]+)?)+$/.test(moves)) { result.error = "Could not match the Moves `" + moves + "`"; return []; }
+
 	var parsedMoves = [];
 	var individualMoves = moves.matchAll(/(?<ComplexRider>\((?<MoveSequence>\S+?)\)(?<DirectionalModifier>[bdflrstvz]|\([bdflrstvz]{2}\))?(?<Steps1>[*#0-9]+)?)|(?<BasicLeaper>[A-Z])((?<Circular>\([bdflrstvz]{,2}\))?(?<Steps2>[*#0-9]+))?/g) // Matches and separates all the moves.
 
@@ -375,13 +379,13 @@ function Moves(moves, result) {
 
 			move.sequence = result1.sequence;
 			if (match.groups.DirectionalModifier) move.circular = match.groups.DirectionalModifier;
-			if (match.groups.Steps1) move.steps = Steps(match.groups.Steps1, result);
+			if (match.groups.Steps1) Object.assign(move, Steps(match.groups.Steps1, result));
 		} else {
 			var sequence = developBasicLeapers ? BasicLeaper(match.groups.BasicLeaper, result) : { sequence: match.groups.BasicLeaper };
 			Object.assign(move, sequence);
 
 			if (match.groups.Circular && !result.error) move.circular = match.groups.Circular;
-			if (match.groups.Steps2 && !result.error) move.steps = Steps(match.groups.Steps2, result);
+			if (match.groups.Steps2 && !result.error) Object.assign(move, Steps(match.groups.Steps2, result));
 		}
 
 		if (result.error) return [];
@@ -422,7 +426,7 @@ function BasicLeaper(basicLeaper, result) {
 	// Z		Zebra				:2,3:
 	var table = {
 		A: { leap: [2,2] },
-		B: { leap: [1,1], steps: { any: true } },
+		B: { leap: [1,1], any: true },
 		C: { leap: [1,3] },
 		D: { leap: [0,2] },
 		E: "RN",
@@ -438,7 +442,7 @@ function BasicLeaper(basicLeaper, result) {
 		O: { leap: [0,0] },
 		P: "mfW+cefF+[1-2]mefW02",
 		Q: "RB",
-		R: { leap: [0,1], steps: { any: true } },
+		R: { leap: [0,1], any: true },
 		S: "mfsF+cefW+[1-2]mefF02",
 		T: { leap: [3,3] },
 		U: "g(WF)0",
@@ -630,7 +634,7 @@ function Modifier(modifier, result) {
 		c: "capture",
 		cc: "captureFriendly",
 		cy: "captureAny",
-		d: "anyDirection",
+		d: "independant",
 		e: "enPassant",
 		ee: "enPassantOnly",
 		f: "forward",

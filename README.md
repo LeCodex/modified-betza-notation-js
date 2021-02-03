@@ -73,3 +73,67 @@ Output: {
   error: 'Could not match the PartialMove`o[b,g]B`'
 }
 ```
+- The Cannon, a particularly complex of Xiangqi, a Chinese version of chess, often used to represent and/or explain the concept of hopping (https://en.wikipedia.org/wiki/Xiangqi#Cannon)
+```js
+Input: a{^C}p{^C}R+[d-f1-3]a{^C}p{^C}B[d-f1-3]+[d-f8-10]a{^C}p{^C}B[d-f8-10]
+Output: {
+  piece: 'C',
+  sequence: [
+    [
+      {
+        move: {
+          modifiers: [
+            {
+              modifier: 'all',
+              pieceSet: { pieces: [ 'C' ], inverted: true }
+            },
+            {
+              modifier: 'hop',
+              pieceSet: { pieces: [ 'C' ], inverted: true }
+            }
+          ],
+          choices: [ { leap: [ 0, 1 ], steps: { any: true } } ]
+        }
+      },
+      {
+        prefix: {
+          range: [ { file: [ 'd', 'f' ], rank: [ '1', '3' ] } ]
+        },
+        move: {
+          modifiers: [
+            {
+              modifier: 'all',
+              pieceSet: { pieces: [ 'C' ], inverted: true }
+            },
+            {
+              modifier: 'hop',
+              pieceSet: { pieces: [ 'C' ], inverted: true }
+            }
+          ],
+          choices: [ { leap: [ 1, 1 ], steps: { any: true } } ],
+          range: [ { file: [ 'd', 'f' ], rank: [ '1', '3' ] } ]
+        }
+      },
+      {
+        prefix: {
+          range: [ { file: [ 'd', 'f' ], rank: [ '8', '10' ] } ]
+        },
+        move: {
+          modifiers: [
+            {
+              modifier: 'all',
+              pieceSet: { pieces: [ 'C' ], inverted: true }
+            },
+            {
+              modifier: 'hop',
+              pieceSet: { pieces: [ 'C' ], inverted: true }
+            }
+          ],
+          choices: [ { leap: [ 1, 1 ], steps: { any: true } } ],
+          range: [ { file: [ 'd', 'f' ], rank: [ '8', '10' ] } ]
+        }
+      }
+    ]
+  ]
+}
+```

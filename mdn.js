@@ -241,7 +241,7 @@ function MoveSequence(moveSequence, result) {
 	// <MoveSequence>        ::= <OptionalMove> ( '-' '-'? <OptionalMove> )*
 	if (!/^\S+(--?\S+)*$/.test(moveSequence)) { result.error = "Could not match the MoveSequence `" + moveSequence + "`"; return result; } // Redundant, since all characters non-whitespace already
 
-	var optionalMoves = moveSequence.matchAll(/-?(?<IsSequence1>-)?(?<OptionalMove1>\S+?(?=(?<![<\[\({-][a-zA-Z0-9]*)-))|-?(?<IsSequence2>-)?(?<OptionalMove2>\S+)/g) // Matches and separates all the sequences.
+	var optionalMoves = moveSequence.matchAll(/-?(?<IsSequence1>-)?(?<OptionalMove1>\S+?)(?=(?<!\-)-(?![^{]*}|[^\[]*]|[^(*]*\)|[^<]*>))|-?(?<IsSequence2>-)?(?<OptionalMove2>\S+)/g) // Matches and separates all the sequences.
 
 	if (!optionalMoves) { result.error = "Could not match the OptionalMoves of the MoveSequence `" + moveSequence + "`"; return result; } // Again, redundant
 
@@ -250,7 +250,9 @@ function MoveSequence(moveSequence, result) {
 		console.log(optionalMove, match);
 
 		result = OptionalMove(optionalMove, result);
-		if (match.groups.IsSequence1 || match.groups.IsSequence2) result.sequence[result.sequence.length - 1] = [ { move: { modifiers: [ { modifier: "anyDirection" } ], choices: [ { sequence: result.sequence[result.sequence.length - 1] } ] } } ];
+
+		if (match.groups.IsSequence1 || match.groups.IsSequence2) result.sequence[result.sequence.length - 1] = [ { move: { modifiers: [ { modifier: "independant" } ], choices: [ { sequence: result.sequence[result.sequence.length - 1] } ] } } ];
+
 		if (result.error) return result;
 	}
 
@@ -294,7 +296,7 @@ function CombinedMove(combinedMove, result) {
 
 function PartialMove(partialMove, result) {
 	// <PartialMove>         ::= <MovePrefix> <BoardRange>? <ModifiedMove> <BoardRange>?
-	var match = partialMove.match(/^(?<MovePrefix>!?(<[+\-0-9do]+>)?(\/[{}a-zA-Z0-9\-^!]+\/)?)(?<BoardRange1>\[[#.+*:0-9a-zA-Z^\-,]+\])?(?<ModifiedMove>\S+?)(?<BoardRange2>\[[#.+*:0-9a-zA-Z^\-,]+\])?$/);
+	var match = partialMove.match(/^(?<MovePrefix>(!({[A-Za-z0-9:^!]})?|#)?(<[+\-0-9do]+>)?(\/[{}a-zA-Z0-9\-^!]+\/)?)(?<BoardRange1>\[[#.+*:0-9a-zA-Z^\-,]+\])?(?<ModifiedMove>\S+?)(?<BoardRange2>\[[#.+*:0-9a-zA-Z^\-,]+\])?$/);
 
 	if (!match) { result.error = "Could not match the PartialMove `" + partialMove + "`"; return result; }
 	var range1 = null, range2 = null, move = {};
@@ -330,19 +332,19 @@ function ModifiedMove(modifiedMove, result, range) {
 	// console.log(modifiedMove);
 
 	var move = {
-		modifiers: [],
+		modifiers: {},
 		choices: []
 	};
-	var match = modifiedMove.match(/^(?<Attackers>{[A-Za-z0-9,!^:]+})?(?<Modifications>(([bdflrstvz]|\([bdflrstvz]{2}\))|((?<Modifier>[aceghijkmnopquwy])(y|\k<Modifier>)?({[A-Za-z0-9,!^:]+})?))*)(?<Moves>\S+)$/);
+	var match = modifiedMove.match(/^(?<Attackers>{[A-Za-z0-9,!^:]+})?(?<Modifications>(([bdflrstvz]|\([bdflrstvz]{2}\))|((?<Modifier>[aceghijkmnopquwy])(y|\k<Modifier>)?\??({[A-Za-z0-9,!^:]+})?))*)(?<Moves>\S+)$/);
 
 	if (!match) { result.error = "Could not match ModifiedMove `" + modifiedMove + "`"; return; }
 
 	if (range) move.range = range;
-	if (match.groups.Attackers) move.modifiers.push(Attackers(match.groups.Attackers, result));
-	if (match.groups.Modifications && !result.error) move.modifiers.push(...Modifications(match.groups.Modifications, result));
+	if (match.groups.Attackers) move.modifiers.attackers = Attackers(match.groups.Attackers, result);
+	if (match.groups.Modifications && !result.error) Object.assign(move.modifiers, Modifications(match.groups.Modifications, result));
 	if (match.groups.Moves && !result.error) move.choices.push(...Moves(match.groups.Moves, result));
 
-	if (!move.modifiers.length) delete move.modifiers;
+	if (!Object.keys(move.modifiers).length) delete move.modifiers;
 
 	return move;
 }
@@ -382,10 +384,15 @@ function Moves(moves, result) {
 			if (match.groups.Steps1) Object.assign(move, Steps(match.groups.Steps1, result));
 		} else {
 			var sequence = developBasicLeapers ? BasicLeaper(match.groups.BasicLeaper, result) : { sequence: match.groups.BasicLeaper };
-			Object.assign(move, sequence);
+			if (sequence.array) {
+				parsedMoves.push(...sequence.array);
+				continue;
+			} else {
+				Object.assign(move, sequence);
+				if (match.groups.Circular && !result.error) move.circular = match.groups.Circular;
+				if (match.groups.Steps2 && !result.error) Object.assign(move, Steps(match.groups.Steps2, result));
+			}
 
-			if (match.groups.Circular && !result.error) move.circular = match.groups.Circular;
-			if (match.groups.Steps2 && !result.error) Object.assign(move, Steps(match.groups.Steps2, result));
 		}
 
 		if (result.error) return [];
@@ -429,24 +436,24 @@ function BasicLeaper(basicLeaper, result) {
 		B: { leap: [1,1], any: true },
 		C: { leap: [1,3] },
 		D: { leap: [0,2] },
-		E: "RN",
+		E: { array: [ { leap: [0,1], any: true }, { leap: [1,2], any: true } ] },
 		F: { leap: [1,1] },
 		G: { leap: [3,3] },
 		H: { leap: [0,3] },
-		I: "BN",
+		I: { array: [ { leap: [1,1], any: true }, { leap: [1,2], any: true } ] },
 		J: { leap: [2,3] },
-		K: "WF",
+		K: { array: [ { leap: [0,1] }, { leap: [1,1] } ] },
 		L: { leap: [1,3] },
 		M: { leap: [1,2] },
 		N: { leap: [1,2] },
 		O: { leap: [0,0] },
 		P: "mfW+cefF+[1-2]mefW02",
-		Q: "RB",
+		Q: { array: [ { leap: [0,1], any: true }, { leap: [1,1], any: true } ] },
 		R: { leap: [0,1], any: true },
 		S: "mfsF+cefW+[1-2]mefF02",
 		T: { leap: [3,3] },
 		U: "g(WF)0",
-		V: "BN",
+		V: { array: [ { leap: [1,1], any: true }, { leap: [1,2], any: true } ] },
 		W: { leap: [0,1] },
 		X: "(!dcy{^P}OK)0*",
 		Y: "F-[(zF)0]",
@@ -575,9 +582,9 @@ function Transition(transition, result) {
 
 function Modifications(modifications, result) {
 	// <Modification>        ::= <DirectionalModifier> | [aceghijkmnopquwy] <PieceSet>?
-	var parsedModifications = [];
+	var parsedModifications = {};
 
-	var individualModifications = modifications.matchAll(/((?<DirectionalModifier>[bdflrstvz]|\([bdflrstvz]{2}\))|((?<Modifier>(?<M>[aceghijkmnopquwy])(y|\k<M>)?)(?<PieceSet>{[A-Za-z0-9,!^:]+})?))(?<Optional>\?)?/g);
+	var individualModifications = modifications.matchAll(/((?<DirectionalModifier>[bdflrstvz]|\([bdflrstvz]{2}\))|((?<Modifier>(?<M>[aceghijkmnopquwy])(y|\k<M>)?)(?<Optional>\?)?(?<PieceSet>{[A-Za-z0-9!^:]+})?))/g);
 
 	if (!individualModifications) { result.error = "Could not match the Modifications `" + modifications + "`"; return []; }
 
@@ -594,7 +601,9 @@ function Modifications(modifications, result) {
 		if (match.groups.Optional && !result.error) modification.optional = true;
 		if (result.error) return [];
 
-		parsedModifications.push(modification);
+		var key = modification.modifier;
+		delete modification.modifier
+		parsedModifications[key] = modification;
 	}
 
 	return parsedModifications;
@@ -642,16 +651,16 @@ function Modifier(modifier, result) {
 		h: "halfling",
 		i: "initial",
 		ii: "initialDecayable",
-		j: "jump",
-		jj: "jumpFriendly",
-		jy: "jumpAny",
+		j: "jumping",
+		jj: "jumpingFriendly",
+		jy: "jumpingAny",
 		k: "noCheck",
 		kk: "noCheckmate",
 		l: "left",
 		m: "move",
 		n: "nonJumping",
 		o: "cylindrical",
-		oo: "cylindricalAll",
+		oo: "torus",
 		p: "hop",
 		pp: "hopMultiple",
 		r: "rght",
@@ -690,14 +699,14 @@ function CompoundRange(compoundRange, result) {
 	var parsedRanges = [];
 	if (!/^[#.+*:\-a-zA-H0-9]+(,[#.+*:\-a-zA-H0-9]+)*$/.test(compoundRange)) { result.error = "Could not match the CompoundRange `" + compoundRange + "`"; return; }
 
-	var ranges = compoundRange.matchAll(/(?<SingleRange1>[#.+*:\-a-zA-H0-9]+)|(,(?<SingleRange2>[#.+*:\-a-zA-H0-9]+))/g);
+	var ranges = compoundRange.matchAll(/,(?<SingleRange1>[#.+*:\-a-zA-H0-9]+)|(?<SingleRange2>[#.+*:\-a-zA-H0-9]+)/g);
 
 	if (!ranges) { result.error = "Could not match the SingleRanges of the CompoundRange `" + compoundRange + "`"; return; }
 
-	for (var range of ranges) {
-		var match = range[1] ? range[1] : range[2];
+	for (var match of ranges) {
+		var range = match.groups.SingleRange1 ? match.groups.SingleRange1 : match.groups.SingleRange2;
 
-		var singleRange = SingleRange(match, result);
+		var singleRange = SingleRange(range, result);
 
 		if (result.error) return;
 
@@ -710,7 +719,7 @@ function CompoundRange(compoundRange, result) {
 function SingleRange(singleRange, result) {
 	// <SingleRange>         ::= ( <FileRange> | <RankRange> | <SquareRange> ) <3dRange>? <4dRange>?  ; Added the missing ranges for edge, inner, threatened, unthreatened and unmoved squares
 	// <SquareRange>         ::= <FileRange> <RankRange>
-	var match = singleRange.match(/^(?<Edge>#)|(?<Inner>\.)|(?<Threatened>\+)|(?<Unthreatened>\*)|(?<Unmoved>:)|(?<FileRange>[a-z\-]+)?(?<RankRange>[0-9\-]+)?(?<ThreeDRange>[A-H\-]+)?(?<FourDRange>[1-8\-]+)?$/);
+	var match = singleRange.match(/^(?<Edge>#)$|^(?<Inner>\.)$|^(?<Threatened>\+)$|^(?<Unthreatened>\*)$|^(?<Unmoved>:)$|^(?<FileRange>[a-z\-]+)?(?<RankRange>[0-9\-]+)?(?<ThreeDRange>[A-H\-]+)?(?<FourDRange>[1-8\-]+)?$/);
 
 	if (!match) { result.error = "Could not match the SingleRange `" + singleRange + "`"; return; }
 
@@ -789,7 +798,7 @@ function FourDRange(fourDRange, result) {
 
 function PieceSet(pieceSet, result) {
 	// <PieceSet>            ::= '{' '!'? '^'? <PieceLetter>* '}'
-	var match = pieceSet.match(/^\{(?<ColorSensitive>!)?(?<Inverted>\^)?(?<PieceLetters>[A-Za-z0-9:]*)\}$/);
+	var match = pieceSet.match(/^\{(?<Inverted>\^)?(?<ColorSensitive>!)?(?<PieceLetters>[A-Za-z0-9:]*)\}$/);
 
 	if (!match) { result.error = "Could not match the PieceSet `" + pieceSet + "`"; return; }
 

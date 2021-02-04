@@ -27,23 +27,20 @@ This function has been made following Backus-Naur Form present at the end of thi
 - The Pawn piece passed through the MDN function (with developBasicLeapers and developModifiers both true)
 ```js
 Input: P|Pawn| = mfW+cefF+[1-2]mefW02
-Output: {
+Output: 
+{
   piece: 'P',
   sequence: [
     [
       {
         move: {
-          modifiers: [ { modifier: 'move' }, { modifier: 'forward' } ],
+          modifiers: { move: {}, forward: {} },
           choices: [ { leap: [ 0, 1 ] } ]
         }
       },
       {
         move: {
-          modifiers: [
-            { modifier: 'capture' },
-            { modifier: 'enPassant' },
-            { modifier: 'forward' }
-          ],
+          modifiers: { capture: {}, enPassant: {}, forward: {} },
           choices: [ { leap: [ 1, 1 ] } ]
         }
       },
@@ -52,12 +49,8 @@ Output: {
           range: [ { rank: [ '1', '2' ] } ]
         },
         move: {
-          modifiers: [
-            { modifier: 'move' },
-            { modifier: 'enPassant' },
-            { modifier: 'forward' }
-          ],
-          choices: [ { leap: [ 0, 1 ], steps: { exact: true, amount: '2' } } ]
+          modifiers: { move: {}, enPassant: {}, forward: {} },
+          choices: [ { leap: [ 0, 1 ], exact: true, amount: '2' } ]
         }
       }
     ]
@@ -67,32 +60,28 @@ Output: {
 - A fairy Bishop piece, that is circular on the b and g ranks (it can jump from the b to the g rank as if they were next to each other, but not from the a or h rank). This returns an error as, currently, modifiers (here 'o') cannot take in a BoardRange
 ```js
 Input: B = o[b,g]B
-Output: {
+Output:
+{
   piece: 'B',
   sequence: [ [] ],
-  error: 'Could not match the PartialMove`o[b,g]B`'
+  error: 'Could not match the Moves `[b,g]B`'
 }
 ```
 - The Cannon, a particularly complex of Xiangqi, a Chinese version of chess, often used to represent and/or explain the concept of hopping (https://en.wikipedia.org/wiki/Xiangqi#Cannon)
 ```js
-Input: a{^C}p{^C}R+[d-f1-3]a{^C}p{^C}B[d-f1-3]+[d-f8-10]a{^C}p{^C}B[d-f8-10]
-Output: {
+Input: C = a{^C}p{^C}R+[d-f1-3]a{^C}p{^C}B[d-f1-3]+[d-f8-10]a{^C}p{^C}B[d-f8-10]
+Output: 
+{
   piece: 'C',
   sequence: [
     [
       {
         move: {
-          modifiers: [
-            {
-              modifier: 'all',
-              pieceSet: { pieces: [ 'C' ], inverted: true }
-            },
-            {
-              modifier: 'hop',
-              pieceSet: { pieces: [ 'C' ], inverted: true }
-            }
-          ],
-          choices: [ { leap: [ 0, 1 ], steps: { any: true } } ]
+          modifiers: {
+            all: { pieceSet: { pieces: [ 'C' ], inverted: true } },
+            hop: { pieceSet: { pieces: [ 'C' ], inverted: true } }
+          },
+          choices: [ { leap: [ 0, 1 ], any: true } ]
         }
       },
       {
@@ -100,17 +89,11 @@ Output: {
           range: [ { file: [ 'd', 'f' ], rank: [ '1', '3' ] } ]
         },
         move: {
-          modifiers: [
-            {
-              modifier: 'all',
-              pieceSet: { pieces: [ 'C' ], inverted: true }
-            },
-            {
-              modifier: 'hop',
-              pieceSet: { pieces: [ 'C' ], inverted: true }
-            }
-          ],
-          choices: [ { leap: [ 1, 1 ], steps: { any: true } } ],
+          modifiers: {
+            all: { pieceSet: { pieces: [ 'C' ], inverted: true } },
+            hop: { pieceSet: { pieces: [ 'C' ], inverted: true } }
+          },
+          choices: [ { leap: [ 1, 1 ], any: true } ],
           range: [ { file: [ 'd', 'f' ], rank: [ '1', '3' ] } ]
         }
       },
@@ -119,17 +102,11 @@ Output: {
           range: [ { file: [ 'd', 'f' ], rank: [ '8', '10' ] } ]
         },
         move: {
-          modifiers: [
-            {
-              modifier: 'all',
-              pieceSet: { pieces: [ 'C' ], inverted: true }
-            },
-            {
-              modifier: 'hop',
-              pieceSet: { pieces: [ 'C' ], inverted: true }
-            }
-          ],
-          choices: [ { leap: [ 1, 1 ], steps: { any: true } } ],
+          modifiers: {
+            all: { pieceSet: { pieces: [ 'C' ], inverted: true } },
+            hop: { pieceSet: { pieces: [ 'C' ], inverted: true } }
+          },
+          choices: [ { leap: [ 1, 1 ], any: true } ],
           range: [ { file: [ 'd', 'f' ], rank: [ '8', '10' ] } ]
         }
       }

@@ -59,7 +59,7 @@ Output:
             directionalModifiers: { forward: {} },
             prefixes: { move: {}, enPassant: {} }
           },
-          choices: [ { leap: [ 0, 1 ], exact: true, amount: '2' } ]
+          choices: [ { leap: [ 0, 1 ], exact: '2' } ]
         }
       }
     ]

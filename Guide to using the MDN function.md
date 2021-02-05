@@ -2,10 +2,8 @@
 This guide is aimed at people wanting to use the mdn.js file in their project to parse custom piece movement descriptions. Although I may do a full movement parser in the future (one that gives you directly the possible moves from a strating position/condition/board), this is not a guarantee. As such, I am making this guide to help you understand how you're supposed to use this piece of software and the object it returns when used.
 
 # Basic usage
-To use the MDN function, you must first import the file into your project. This can be done using the `import` keyword or using the `require` function if you are using Node.
+To use the MDN function, you must first import the file into your project.
 ```js
-import MDN from "./mdn.js";
----------------------------------
 const {MDN} = require("./mdn.js");
 ```
 Once this is done, all you need to do is call the function with your description as the sole argument. The description should be a simple string.

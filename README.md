@@ -14,14 +14,14 @@ This file is a parser of the Modified Betza Notation used by the Compact Chess I
     * K|King|=W+F
 
 # How does it work?
-The MDN function takes in a string representing the defintion of a single piece, and returns an Object that decomposes every part of the movement of that piece, in a (hopefully) easy-to-use manner. I intend on making a guide to using the object returned by the function.
+The MDN function takes in a string representing the defintion of a single piece, and returns an Object that decomposes every part of the movement of that piece, in a (hopefully) easy-to-use manner. You will find in the repository a guide on how to properly use the returned object to create the move options of the piece.
 
 In the case of a syntax error, the function will simply throw an Error detailling what went wrong. Do be aware that the error may not be directly linked to the problem, and may appear as a consequence of the error messing up an earlier part of the process.
 
 ## Notes
 ~~Normally, the MDN notation does not allow for whitespaces inside the definition. The MDN function currently does allow them, but only around the equal sign to improve readability.~~ This is no longer the case.
 
-This function has been made following Backus-Naur Form present at the end of this article: http://ccif.sourceforge.net/modified-betza-notation.html. However, this form is not complete and does not include all the elements of the MDN, and is even erroneous in some places. I have made some decisions regarding each defintion in that form that I have written in their respective functions as comments.
+This function has been made following Backus-Naur Form present at the end of this article: http://ccif.sourceforge.net/modified-betza-notation.html. However, this form is not complete and does not include all the elements of the MDN, and is even erroneous in some places. I have made some decisions regarding some defintions in that form that I have written in their respective functions as comments.
 
 ## Examples 
 - The Pawn piece passed through the MDN function (With developBasicLeapers true. This will be the case for all following exmples).

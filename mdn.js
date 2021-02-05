@@ -175,7 +175,7 @@ function FourDBoardIdentifier(fourDBoardIdentifier, result) {
 
 function FourDBoardIdentifier1(fourDBoardIdentifier, result) {
 	// <4dBoardIdentifier1>  ::= '<' <3dBoardIdentifier> ';' <3dBoardIdentifier> '>'
-	var match = fourDBoardIdentifier.match(/^<(?<threeDBoardIdentifier1>[<>0-9*,]+);(?<threeDBoardIdentifier2>[<>0-9*,]+)$/);
+	var match = fourDBoardIdentifier.match(/^<(?<threeDBoardIdentifier1>[<>0-9*,]+);(?<threeDBoardIdentifier2>[<>0-9*,]+)>$/);
 
 	if (!match) {
 		result = addWarning(result, "Could not match 4dBoardIdentifier1 \"" + fourDBoardIdentifier + "\"");
@@ -185,8 +185,8 @@ function FourDBoardIdentifier1(fourDBoardIdentifier, result) {
 	var result1 = ThreeDBoardIdentifier(match.groups.threeDBoardIdentifier1, {});
 	var result2 = ThreeDBoardIdentifier(match.groups.threeDBoardIdentifier2, {});
 
-	result.warnings.push(...result1.warnings);
-	result.warnings.push(...result2.warnings);
+	if (result1.warnings) result.warnings.push(...result1.warnings);
+	if (result2.warnings) result.warnings.push(...result2.warnings);
 
 	if (!result1.threeDBoard || !result2.threeDBoard) {
 		result = addWarning(result, "Could not match the BoardNumbers of the 4dBoardIdentifier1 \"" + fourDBoardIdentifier + "\"");
@@ -203,12 +203,12 @@ function FourDBoardIdentifier2(fourDBoardIdentifier, result) {
 
 	if (!match) { throw new Error("Could not match the BoardIdentifier \"" + fourDBoardIdentifier + "\"") } // Small issue: there is no way of knowing where the error as precisely as the other parts
 
-	var numbers1 = BoardNumbers(match.group.BoardNumbers1);
-	var numbers2 = BoardNumbers(match.group.BoardNumbers2);
+	var numbers1 = BoardNumbers(match.groups.BoardNumbers1);
+	var numbers2 = BoardNumbers(match.groups.BoardNumbers2);
 
-	if (!numbers1 || !number2) { throw new Error("Could not match the BoardNumbers of the BoardIdentifier \"" + fourDBoardIdentifier + "\"") }
+	if (!numbers1 || !numbers2) { throw new Error("Could not match the BoardNumbers of the BoardIdentifier \"" + fourDBoardIdentifier + "\"") }
 
-	result.fourDBoard = [numbers1, numbers2];
+	result.fourDBoard = [ { threeDBoard: numbers1 }, { threeDBoard: numbers2 } ];
 	result.reflected4DBoard = true;
 
 	return result;
@@ -251,7 +251,7 @@ function MoveSequence(moveSequence, result) {
 
 		result = OptionalMove(optionalMove, result);
 
-		if (match.groups.IsSequence1 || match.groups.IsSequence2) result.sequence[result.sequence.length - 1] = [ { move: { modifiers: [ { modifier: "independant" } ], choices: [ { sequence: result.sequence[result.sequence.length - 1] } ] } } ];
+		if (match.groups.IsSequence1 || match.groups.IsSequence2) result.sequence[result.sequence.length - 1] = [ { move: { modifiers: [ { modifier: "independant" } ], choices: [ { sequence: [ result.sequence[result.sequence.length - 1] ] } ] } } ];
 
 		if (result.error) return result;
 	}
@@ -296,7 +296,7 @@ function CombinedMove(combinedMove, result) {
 
 function PartialMove(partialMove, result) {
 	// <PartialMove>         ::= <MovePrefix> <BoardRange>? <ModifiedMove> <BoardRange>?
-	var match = partialMove.match(/^(?<MovePrefix>(!({[A-Za-z0-9:^!]+})?|#)?(<[+\-0-9do]+>)?(\/[{}a-zA-Z0-9\-^!]+\/)?)(?<BoardRange1>\[[#.+*:0-9a-zA-Z^\-,]+\])?(?<ModifiedMove>\S+?)(?<BoardRange2>\[[#.+*:0-9a-zA-Z^\-,]+\])?$/);
+	var match = partialMove.match(/^(?<MovePrefix>(!({[A-Za-z0-9:^!]+})?|#)?(<[+\-0-9do]+>)?(\/[\[\]{}a-zA-Z0-9\-^!]+\/)?)(?<BoardRange1>\[[#.+*:0-9a-zA-Z^\-,]+\])?(?<ModifiedMove>\S+?)(?<BoardRange2>\[[#.+*:0-9a-zA-Z^\-,]+\])?$/);
 
 	if (!match) { throw new Error("Could not match the PartialMove \"" + partialMove + "\"") }
 	var range1 = null, range2 = null, move = {};
@@ -315,7 +315,7 @@ function PartialMove(partialMove, result) {
 function MovePrefix(movePrefix, result, range) {
 	// <MovePrefix>          ::= '!'? <BoardTransition>? <Condition>?
 	var prefix = {};
-	var match = movePrefix.match(/^((?<Setup>!)(?<PieceSet>{[A-Za-z0-9:^!]+})?|(?<Decision>#))?(?<BoardTransition><[a-zA-H0-9\-,^]+>)?(?<Condition>\/[{}A-Za-z0-9\-,^]+\/)?$/);
+	var match = movePrefix.match(/^((?<Setup>!)(?<PieceSet>{[A-Za-z0-9:^!]+})?|(?<Decision>#))?(?<BoardTransition><[a-zA-H0-9\-,^]+>)?(?<Condition>\/[\[\]{}A-Za-z0-9\-,^]+\/)?$/);
 
 	if (!match) { throw new Error("Could not match the MovePrefix \"" + movePrefix + "\"") }
 
@@ -500,13 +500,13 @@ function Steps(steps, result) {
 	if (match.groups.Maximal) {
 		return { max: true };
 	} else if (match.groups.Exact) {
-		return { exact: true, amount: match.groups.Exact };
+		return { exact: match.groups.Exact };
 	} else if (match.groups.Zero) {
 		return { any: true };
 	} else if (match.groups.Edge) {
 		return { edgeRider: true };
 	} else if (match.groups.Limited) {
-		return { limited: true, amount: match.groups.Limited };
+		return { limited: match.groups.Limited };
 	}
 }
 
@@ -798,7 +798,7 @@ function SingleRange(singleRange, result) {
 	if (match.groups.RankRange) { range.rank = RankRange(match.groups.RankRange, result); }
 	if (!range.file && !range.rank) { throw new Error("Could not match the FileRange or RankRange or SquareRange of the SingleRange \"" + singleRange + "\"") }
 
-	if (match.groups.ThreeDRange && !result.error) { range.fourDLevel = ThreeDRange(match.groups.ThreeDRange, result); }
+	if (match.groups.ThreeDRange && !result.error) { range.threeDLevel = ThreeDRange(match.groups.ThreeDRange, result); }
 	if (match.groups.FourDRange && !result.error) { range.fourDRow = FourDRange(match.groups.FourDRange, result); }
 
 	if (!result.error) return range;
@@ -839,11 +839,11 @@ function ThreeDRange(threeDRange, result) {
 
 	if (!match) { throw new Error("Could not match the ThreeDRange \"" + threeDRange + "\"") }
 
-	var fourDLevel = [];
-	if (match.groups.ThreeD1) fourDLevel.push(match.groups.ThreeD1);
-	if (match.groups.ThreeD2) fourDLevel.push(match.groups.ThreeD2);
+	var threeDLevel = [];
+	if (match.groups.ThreeD1) threeDLevel.push(match.groups.ThreeD1);
+	if (match.groups.ThreeD2) threeDLevel.push(match.groups.ThreeD2);
 
-	return fourDLevel;
+	return threeDLevel;
 }
 
 function FourDRange(fourDRange, result) {
@@ -888,7 +888,7 @@ function PieceSet(pieceSet, result) {
 
 function Condition(condition, result) {
 	// <Condition>           ::= '/' ( <PieceSet> | <PieceLetter> ) ( <BoardRange> | <Square> ) '/'  ; Added a ? after ( <BoardRange> | <Square> ) since it isn't mandatory
-	var match = condition.match(/^\/((?<PieceSet>{[A-Za-z0-9:!^]+})|(?<PieceLetter>[A-Za-z]|:[A-Za-z][A-Za-z0-9]?[A-Za-z0-9]?:))((?<BoardRange>\[[\-^a-zA-H0-9,]+\])|(?<Square>[0-9a-zA-H]+))?\/$/);
+	var match = condition.match(/^\/((?<PieceSet>{[A-Za-z0-9:!^]+})|(?<PieceLetter>[A-Za-z]|:[A-Za-z][A-Za-z0-9]?[A-Za-z0-9]?:))((?<BoardRange>\[[#.+*:\-^a-zA-H0-9,]+\])|(?<Square>[0-9a-zA-H]+))?\/$/);
 
 	if (!match) { throw new Error("Could not match the Condition \"" + condition + "\"") }
 
@@ -910,7 +910,7 @@ function Square(square, result) {
 	var range = {};
 	if (match.groups.File) range.file = [ match.groups.File ];
 	if (match.groups.Rank) range.rank = [ match.groups.Rank ];
-	if (match.groups.ThreeDLevel) range.fourDLevel = [ match.groups.ThreeDLevel ];
+	if (match.groups.ThreeDLevel) range.threeDLevel = [ match.groups.ThreeDLevel ];
 	if (match.groups.FourDRow) range.fourDRow = [ match.groups.FourDRow ];
 
 	return range;

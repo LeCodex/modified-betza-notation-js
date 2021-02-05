@@ -5,7 +5,7 @@ A parser for the Modified Betza Notation used by the Compact Chess Interchange F
 This file is a parser of the Modified Betza Notation used by the Compact Chess Interchange Format to describe the movements of chess pieces on the board. It is built upon the Funny Betza Notation, and adds many modifiers and syntaxes to allow the description of nearly any piece on the board.
 
 ## Examples
-* The pieces in Orthodox Chess described in that notaion
+* The pieces in Orthodox Chess described in that notation:
     * P|Pawn|=mfW+cefF+[1-2]mefW02
     * N|Knight|=N
     * B|Bishop|=F0
@@ -14,7 +14,7 @@ This file is a parser of the Modified Betza Notation used by the Compact Chess I
     * K|King|=W+F
 
 # How does it work?
-The MDN function takes in a string representing the defintion of a single piece, and returns an Object that decomposes every part of the movement of that piece, in a (hopefully) easy-to-use manner. You will find in the repository a guide on how to properly use the returned object to create the move options of the piece.
+The MDN function takes in a string representing the defintion of a single piece, and returns an Object that decomposes every part of the movement of that piece, in a (hopefully) easy-to-use manner. You will find in the repository a guide on how to properly use the returned Object to create the move options of the piece.
 
 In the case of a syntax error, the function will simply throw an Error detailling what went wrong. Do be aware that the error may not be directly linked to the problem, and may appear as a consequence of the error messing up an earlier part of the process.
 

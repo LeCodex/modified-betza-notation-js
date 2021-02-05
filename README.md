@@ -2,7 +2,7 @@
 A parser for the Modified Betza Notation used by the Compact Chess Interchange Format.
 
 # What is this for?
-This file is a parser of the Modified Betza Notation used by the Compact Chess Interchange Format to describe the momvements of chess pieces on the board. It is built upon the Funny Betza Notation, and adds many modifiers and syntaxes to allow the description of nearly any piece on the board.
+This file is a parser of the Modified Betza Notation used by the Compact Chess Interchange Format to describe the movements of chess pieces on the board. It is built upon the Funny Betza Notation, and adds many modifiers and syntaxes to allow the description of nearly any piece on the board.
 
 ## Examples
 * The pieces in Orthodox Chess described in that notaion

@@ -21,7 +21,7 @@ In the case of a syntax error, the function will simply throw an Error detaillin
 ## Notes
 ~~Normally, the MBN notation does not allow for whitespaces inside the definition. The MDN function currently does allow them, but only around the equal sign to improve readability.~~ This is no longer the case.
 
-This function has been made following Backus-Naur Form present at the end of this article: http://ccif.sourceforge.net/modified-betza-notation.html. However, this form is not complete and does not include all the elements of the MDN, and is even erroneous in some places. I have made some decisions regarding some defintions in that form that I have written in their respective functions as comments.
+This function has been made following Backus-Naur Form present at the end of this article: http://ccif.sourceforge.net/modified-betza-notation.html. However, this form is not complete and does not include all the elements of the MBN, and is even erroneous in some places. I have made some decisions regarding some defintions in that form that I have written in their respective functions as comments.
 
 ## Examples 
 - The Pawn piece passed through the MDN function (With developBasicLeapers true. This will be the case for all following exmples).

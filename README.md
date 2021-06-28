@@ -19,12 +19,12 @@ The MBN function takes in a string representing the defintion of a single piece,
 In the case of a syntax error, the function will simply throw an Error detailling what went wrong. Do be aware that the error may not be directly linked to the problem, and may appear as a consequence of the error messing up an earlier part of the process.
 
 ## Notes
-~~Normally, the MBN notation does not allow for whitespaces inside the definition. The MDN function currently does allow them, but only around the equal sign to improve readability.~~ This is no longer the case.
+~~Normally, the MBN notation does not allow for whitespaces inside the definition. The MBN function currently does allow them, but only around the equal sign to improve readability.~~ This is no longer the case.
 
 This function has been made following Backus-Naur Form present at the end of this article: http://ccif.sourceforge.net/modified-betza-notation.html. However, this form is not complete and does not include all the elements of the MBN, and is even erroneous in some places. I have made some decisions regarding some defintions in that form that I have written in their respective functions as comments.
 
 ## Examples 
-- The Pawn piece passed through the MDN function (With developBasicLeapers true. This will be the case for all following exmples).
+- The Pawn piece passed through the MBN function (With developBasicLeapers true. This will be the case for all following exmples).
 ```js
 Input: P|Pawn|=mfW+cefF+[1-2]mefW02
 Output: 

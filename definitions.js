@@ -1,6 +1,6 @@
 function Identifier(identifier, result) {
 	// <Identifier>          ::= ( '@' <MacroIdentifier> | <PieceIdentifier> ) <Suffix> <BoardIdentifier>?  ; Added the possibility for a comment right after the piece definition
-	var match = identifier.match(/^(@(?<MacroIdentifier>[A-Za-z0-9:]+)|(?<PieceIdentifier>[+\-#*$%&A-Za-z0-9:]+))(?<Suffix><[A-Za-z]+>)?(?<BoardIdentifier><[<>;0-9*,]+>)?(\|.*\|)?$/);
+	var match = identifier.match(/^(@(?<MacroIdentifier>[+\-#*$%&A-Za-z0-9:]+)|(?<PieceIdentifier>[+\-#*$%&A-Za-z0-9:]+))(?<Suffix><[A-Za-z]+>)?(?<BoardIdentifier><[<>;0-9*,]+>)?(\|.*\|)?$/);
 
 	if (!match) { throw new Error("Could not match the Identifier \"" + identifier + "\"") }
 
@@ -13,22 +13,24 @@ function Identifier(identifier, result) {
 }
 
 function MacroIdentifier(macroIdentifier, result) {
-	// <PieceIdentifier>     ::= [+-#*$%&]? <PieceLetter>
-	var match = macroIdentifier.match(/^[A-Za-z]$|^:[A-Za-z][A-Za-z0-9]?[A-Za-z0-9]?:$/);
+	// <PieceIdentifier>     ::= <Prefix>? <PieceLetter> ; Updated to make it dependant on the definition of the prefix
+	var match = macroIdentifier.match(/^(?<Prefix>[+\-#*$%&])?(?<PieceLetter>[A-Za-z0-9:]+)$/);
 
 	if (!match) { throw new Error("Could not match the MacroIdentifier \"" + macroIdentifier + "\"") }
 
-	result.macro = match[0];
+	if (match.groups.Prefix) result.prefix = match.groups.Prefix;
+	result.macro = PieceLetter(match.groups.PieceLetter, result);;
+
 	return result;
 }
 
 function PieceIdentifier(pieceIdentifier, result) {
-	// <PieceIdentifier>     ::= [+-#*$%&]? <PieceLetter>
-	var match = pieceIdentifier.match(/^([+\-#*$%&])?(?<PieceLetter>[A-Za-z0-9:]+)$/);
+	// <PieceIdentifier>     ::= <Prefix>? <PieceLetter> ; Updated to make it dependant on the definition of the prefix
+	var match = pieceIdentifier.match(/^(?<Prefix>[+\-#*$%&])?(?<PieceLetter>[A-Za-z0-9:]+)$/);
 
 	if (!match) { throw new Error("Could not match the PieceIdentifier \"" + pieceIdentifier + "\"") }
 
-	if (match[1]) result.prefix = match[1];
+	if (match.groups.Prefix) result.prefix = match.groups.Prefix;
 	result.piece = PieceLetter(match.groups.PieceLetter, result);
 
 	return result;
@@ -45,7 +47,7 @@ function PieceLetter(pieceLetter, result) {
 
 function Suffix(suffix, result) {
 	// <Suffix>              ::= [A-Za-z0-9] [A-Za-z0-9]*  ; Updated to remove the numbers, since it causes issues with the recognition of the BoardIdentifier. Also added back the <>
-	var match = suffix.match(/^<([A-Za-z][A-Za-z]*)>$/);
+	var match = suffix.match(/^<([A-Za-z]+)>$/);
 
 	if (!match) { throw new Error("Could not match the Suffix \"" + suffix + "\"") }
 
@@ -260,27 +262,28 @@ function FourDRange(fourDRange, result) {
 	return fourDRow;
 }
 
-function PieceSet(pieceSet, result) {
+function PieceSet(pieceSet, result = {}) {
 	// <PieceSet>            ::= '{' '!'? '^'? <PieceLetter>* '}'
-	var match = pieceSet.match(/^\{(?<Inverted>\^)?(?<ColorSensitive>!)?(?<PieceLetters>[A-Za-z0-9:]*)\}$/);
+	var match = pieceSet.match(/^\{(?<Inverted>\^)?(?<ColorSensitive>!)?(?<PieceLetters>[+\-#*$%&A-Za-z0-9:]*)\}$/);
 
 	if (!match) { throw new Error("Could not match the PieceSet \"" + pieceSet + "\"") }
 
-	var pieces = match.groups.PieceLetters.matchAll(/[A-Za-z]|:[A-Za-z][A-Za-z0-9]?[A-Za-z0-9]?:/g);
+	var pieces = match.groups.PieceLetters.matchAll(/(?<Prefix>[+\-#*$%&])?(?<PieceLetter>[A-Za-z]|:[A-Za-z][A-Za-z0-9]?[A-Za-z0-9]?:)/g);
 
 	if (!pieces) { throw new Error("Could not match the Pieces of the PieceSet \"" + pieceSet + "\"") }
 
-	var set = { pieces: [] };
+	var set = { pieces: {} };
 
 	if (match.groups.ColorSensitive) set.colorSensitive = true;
 	if (match.groups.Inverted) set.inverted = true;
 
 	for (letter of pieces) {
-		var piece = PieceLetter(letter[0], result);
+		var piece = PieceLetter(letter.groups.PieceLetter, result);
 
 		if (result.error) return;
 
-		set.pieces.push(piece);
+		set.pieces[piece] = {};
+		if (letter.groups.Prefix) set.pieces[piece].prefix = letter.groups.Prefix
 	}
 
 	return set;

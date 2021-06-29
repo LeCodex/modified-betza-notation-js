@@ -232,7 +232,7 @@ function PartialMove(partialMove, result) {
 function MovePrefix(movePrefix, result, range) {
 	// <MovePrefix>          ::= '!'? <BoardTransition>? <Condition>?
 	var prefix = {};
-	var match = movePrefix.match(/^((?<Setup>!)(?<PieceSet>{[A-Za-z0-9:^!]+})?|(?<Decision>#))?(?<BoardTransition><[a-zA-H0-9\-,^]+>)?(?<Condition>\/[\[\]{}A-Za-z0-9\-,^]+\/)?$/);
+	var match = movePrefix.match(/^((?<Setup>!)(?<PieceSet>{[+\-#*$%&A-Za-z0-9:^!]+})?|(?<Decision>#))?(?<BoardTransition><[a-zA-H0-9\-,^]+>)?(?<Condition>\/[\[\]{}A-Za-z0-9\-,^]+\/)?$/);
 
 	if (!match) { throw new Error("Could not match the MovePrefix \"" + movePrefix + "\"") }
 
@@ -521,7 +521,7 @@ function Modifications(modifications, result) {
 		prefixes: {}
 	};
 
-	var individualModifications = modifications.matchAll(/((?<DirectionalModifier>[bflrsvz])|\((?<Amalgamated>[bflrsvz]{2})\)|((?<Prefix>(?<M>[acdeghijkmnopqtuwy])(y|\k<M>)?)(?<Optional>\?)?))(?<PieceSet>{[A-Za-z0-9!^:]+})?(?<BoardRange>\[[\-^a-zA-H0-9,]+\])?/g);
+	var individualModifications = modifications.matchAll(/((?<DirectionalModifier>[bflrsvz])|\((?<Amalgamated>[bflrsvz]{2})\)|((?<Prefix>(?<M>[acdeghijkmnopqtuwy])(y|\k<M>)?)(?<Optional>\?)?))(?<PieceSet>{[+\-#*$%&A-Za-z0-9!^:]+})?(?<BoardRange>\[[\-^a-zA-H0-9,]+\])?/g);
 
 	if (!individualModifications) { throw new Error("Could not match the Modifications \"" + modifications + "\"") }
 
@@ -672,7 +672,7 @@ function Amalgamated(amalgamated, result) {
 
 function Condition(condition, result) {
 	// <Condition>           ::= '/' ( <PieceSet> | <PieceLetter> ) ( <BoardRange> | <Square> ) '/'  ; Added a ? after ( <BoardRange> | <Square> ) since it isn't mandatory
-	var match = condition.match(/^\/((?<PieceSet>{[A-Za-z0-9:!^]+})|(?<PieceLetter>[A-Za-z]|:[A-Za-z][A-Za-z0-9]?[A-Za-z0-9]?:))((?<BoardRange>\[[#.+*:\-^a-zA-H0-9,]+\])|(?<Square>[0-9a-zA-H]+))?\/$/);
+	var match = condition.match(/^\/((?<PieceSet>{[+\-#*$%&A-Za-z0-9:!^]+})|(?<PieceLetter>[A-Za-z]|:[A-Za-z][A-Za-z0-9]?[A-Za-z0-9]?:))((?<BoardRange>\[[#.+*:\-^a-zA-H0-9,]+\])|(?<Square>[0-9a-zA-H]+))?\/$/);
 
 	if (!match) { throw new Error("Could not match the Condition \"" + condition + "\"") }
 
